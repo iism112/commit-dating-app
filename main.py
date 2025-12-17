@@ -69,7 +69,24 @@ class ActionCreate(BaseModel):
 
 class MessageCreate(BaseModel):
     match_id: int
-    text: str # 'text' matches JS usage, map to 'content' in logical layer or DB
+    text: str
+
+class UserRegister(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: str
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    bio: Optional[str] = None
+    stack: Optional[List[str]] = None
+    image: Optional[str] = None
 
 class UserRead(BaseModel):
     id: int
@@ -80,10 +97,19 @@ class UserRead(BaseModel):
     image: str
     location_lat: float
     location_lng: float
-    match_score: int = 0  # Added field
+    match_score: int = 0
     
     class Config:
         orm_mode = True
+
+# Auth Dependency
+def get_current_user(x_user_id: Optional[str] = Header(None)):
+    if not x_user_id:
+        # For simplicity in this demo, we allow missing header to mean "Not Logged In" 
+        # or raise 401. But endpoints usually require it.
+        # Let's enforce it.
+        raise HTTPException(status_code=401, detail="Missing X-User-Id header")
+    return int(x_user_id)
 
 # Helper: Jaccard Similarity
 def calculate_match_score(stack1: List[str], stack2: List[str]) -> int:
