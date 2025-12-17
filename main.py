@@ -397,6 +397,74 @@ def get_likes_sent(current_user_id: int = Depends(get_current_user), db: Session
 app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 
+@app.get("/api/seed")
+def seed_db(db: Session = Depends(get_db)):
+    # Initial Data (No IDs, let DB assign)
+    profiles = [
+        {
+            "name": "Sarah Chen",
+            "role": "Frontend Architect",
+            "bio": "git commit -m 'looking for someone to center my div'",
+            "stack": ["React", "TypeScript", "Tailwind", "Three.js", "Figma"],
+            "image": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=500&q=80",
+            "location_lat": 40.7228, "location_lng": -73.9960
+        },
+        {
+            "name": "Alex Rodriguez",
+            "role": "Systems Engineer",
+            "bio": "Rust enthusiast. I promise not to rewrite your codebase.",
+            "stack": ["Rust", "Go", "Kubernetes", "Linux", "C++"],
+            "image": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=500&q=80",
+            "location_lat": 40.6928, "location_lng": -74.0010
+        },
+        {
+            "name": "Jordan Taylor",
+            "role": "AI Researcher",
+            "bio": "Training models by day, debugging life by night.",
+            "stack": ["Python", "PyTorch", "TensorFlow", "CUDA", "FastAPI"],
+            "image": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=500&q=80",
+            "location_lat": 40.7278, "location_lng": -74.0160
+        },
+        {
+            "name": "Emily Zhang",
+            "role": "Full Stack Dev",
+            "bio": "Tabs over spaces. VIM over VS Code. Fight me.",
+            "stack": ["Node.js", "Vue", "Postgres", "AWS", "Python"],
+            "image": "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=500&q=80",
+            "location_lat": 40.7078, "location_lng": -74.0260
+        },
+        {
+            "name": "David Kim",
+            "role": "DevOps Engineer",
+            "bio": "If it works on my machine, we ship my machine.",
+            "stack": ["Docker", "Terraform", "CI/CD", "Bash", "Go"],
+            "image": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=500&q=80",
+            "location_lat": 40.7428, "location_lng": -73.9760
+        }
+    ]
+
+    added_count = 0
+    for p in profiles:
+        # Check if exists by name (simple check)
+        exists = db.query(models.User).filter(models.User.email == f"{p['name'].split(' ')[0].lower()}@test.com").first()
+        if not exists:
+            user = models.User(
+                name=p['name'],
+                email=f"{p['name'].split(' ')[0].lower()}@test.com",
+                password="password",
+                role=p['role'],
+                bio=p['bio'],
+                stack=p['stack'],
+                image=p['image'],
+                location_lat=p['location_lat'],
+                location_lng=p['location_lng']
+            )
+            db.add(user)
+            added_count += 1
+    
+    db.commit()
+    return {"message": f"Seeding Complete. Added {added_count} new profiles."}
+
 if __name__ == "__main__":
     import uvicorn
     # Kill old process on 8080 if possible? No.
