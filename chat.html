@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat | Commit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        github: {
+                            bg: '#0d1117',
+                            card: '#161b22',
+                            border: '#30363d',
+                            text: '#c9d1d9',
+                            muted: '#8b949e',
+                            btn: '#21262d',
+                            green: '#238636',
+                            accent: '#58a6ff'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-github-bg text-github-text font-sans h-screen flex flex-col">
+    <!-- Header -->
+    <nav class="border-b border-github-border p-3 bg-github-card flex items-center gap-3 shrink-0">
+        <a href="matches.html" class="p-2 -ml-2 text-github-muted hover:text-white">
+            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+        </a>
+        <div class="relative">
+            <img id="header-avatar" src="" class="w-10 h-10 rounded-full border border-github-border object-cover">
+            <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-github-green rounded-full border-2 border-github-card">
+            </div>
+        </div>
+        <div>
+            <h1 id="header-name" class="font-bold text-sm">Loading...</h1>
+            <p class="text-xs text-github-green font-mono">Online</p>
+        </div>
+        <div class="ml-auto">
+            <button id="btn-view-profile" class="text-github-muted hover:text-github-accent transition">
+                <i data-lucide="info" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Messages Area -->
+    <main id="chat-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+        <!-- Messages injected here -->
+    </main>
+
+    <!-- Input Area -->
+    <div class="p-4 bg-github-card border-t border-github-border shrink-0">
+        <form id="chat-form" class="flex gap-2 max-w-lg mx-auto">
+            <input type="text" id="msg-input"
+                class="flex-1 bg-github-bg border border-github-border rounded-full px-4 py-2 text-sm text-github-text focus:outline-none focus:border-github-accent placeholder-github-muted"
+                placeholder="Type a message..." autocomplete="off">
+            <button type="submit"
+                class="bg-github-green text-white p-2 rounded-full hover:bg-opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                <i data-lucide="send" class="w-5 h-5 ml-0.5"></i>
+            </button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { datastore } from './datastore.js?v=4';
+        import { auth } from './auth.js?v=2';
+
+        lucide.createIcons();
+
+        // Get Profile ID from URL
+        const params = new URLSearchParams(window.location.search);
+        const profileId = parseInt(params.get('id'));
+
+        // Init UI
+        const chatContainer = document.getElementById('chat-container');
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('msg-input');
+
+        async function init() {
+            // Defensive Debug Bar Creation (First thing)
+            let debugDiv = document.createElement('div');
+            debugDiv.className = 'bg-black text-white p-4 font-mono text-xs fixed top-0 left-0 z-50 w-full';
+            document.body.appendChild(debugDiv);
+
+            try {
+                const rawId = params.get('id');
+                const profileId = parseInt(rawId);
+
+                // Safe Auth Check
+                let myId = 'Unknown';
+                try {
+                    if (window.auth) myId = window.auth.getUserId(); // If global
+                    else if (auth) myId = auth.getUserId(); // If imported
+                } catch (e) { myId = 'Auth Error: ' + e.message; }
+
+                debugDiv.innerHTML = `DEBUG: URL ID='${rawId}' | My ID='${myId}' | Type=${typeof profileId}`;
+
+                // Robust check
+                if (!rawId || rawId === 'null' || rawId === 'undefined' || isNaN(profileId) || profileId <= 0) {
+                    console.error("Invalid User ID in URL:", rawId);
+                    debugDiv.innerHTML += " <br><span class='text-red-500 font-bold'>ERROR: ID VALIDATION FAILED.</span>";
+                    return;
+                }
+
+                const profile = await datastore.getProfile(profileId);
+
+                if (!profile) {
+                    console.error("Profile fetch failed for ID:", profileId);
+                    debugDiv.innerHTML += `<br><span class='text-red-500 font-bold'>ERROR: API returned null. Check Auth/Network.</span>`;
+                    return;
+                }
+
+                // Success
+                debugDiv.style.display = 'none'; // Hide if successful
+
+                // Setup Header
+                document.getElementById('header-avatar').src = profile.image;
+                document.getElementById('header-name').textContent = profile.name;
+
+                document.getElementById('btn-view-profile').onclick = () => {
+                    window.location.href = `view-profile.html?id=${profileId}&return=chat`;
+                };
+
+                renderMessages();
+            } catch (err) {
+                console.error("Critical Init Error:", err);
+                debugDiv.innerHTML += `<br><span class='text-red-500 font-bold'>CRITICAL ERROR: ${err.message}</span>`;
+            }
+        }
+
+        init();
+
+        // WebSocket Setup
+        function setupWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            const wsUrl = `${protocol}//${host}/ws/${auth.getUserId()}`;
+            console.log("Connecting WS:", wsUrl);
+
+            const ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => console.log("WS Connected");
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'new_message' && data.sender_id == profileId) {
+                    appendMessage(data.text, 'them');
+                }
+            };
+
+            ws.onclose = () => {
+                console.log("WS Disconnected, retrying...");
+                setTimeout(setupWebSocket, 3000);
+            };
+        }
+
+        function appendMessage(text, sender) {
+            const isMe = sender === 'me';
+            const div = document.createElement('div');
+            div.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'}`;
+            div.innerHTML = `
+                 <div class="max-w-[75%] rounded-2xl px-4 py-2 text-sm ${isMe
+                    ? 'bg-github-accent text-white rounded-br-none'
+                    : 'bg-github-card border border-github-border text-github-text rounded-bl-none'
+                }">
+                     ${text}
+                 </div>
+             `;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Load Messages
+        async function renderMessages() {
+            const messages = await datastore.getMessages(profileId);
+            chatContainer.innerHTML = '';
+
+            const dateDiv = document.createElement('div');
+            dateDiv.className = 'text-center text-xs text-github-muted my-4 font-mono';
+            dateDiv.textContent = 'Today';
+            chatContainer.appendChild(dateDiv);
+
+            messages.forEach(msg => appendMessage(msg.text, msg.sender));
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Start
+        renderMessages();
+        setupWebSocket();
+
+        // Send Message
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            appendMessage(text, 'me'); // Optimistic
+            await datastore.sendMessage(profileId, text);
+        });
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matches | Commit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        github: {
+                            bg: '#0d1117',
+                            card: '#161b22',
+                            border: '#30363d',
+                            text: '#c9d1d9',
+                            muted: '#8b949e',
+                            btn: '#21262d',
+                            green: '#238636',
+                            accent: '#58a6ff'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-github-bg text-github-text font-sans min-h-screen">
+    <nav class="border-b border-github-border p-4 sticky top-0 bg-github-bg/95 backdrop-blur z-50">
+        <div class="max-w-lg mx-auto flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-2 text-github-muted hover:text-github-accent transition">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            </a>
+            <h1 class="font-bold text-lg">Your Merges</h1>
+            <div class="w-6"></div> <!-- Spacer -->
+        </div>
+    </nav>
+
+    <main class="max-w-lg mx-auto p-4">
+        <div id="matches-list" class="flex flex-col gap-2">
+            <!-- Injected -->
+        </div>
+        <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 text-github-muted">
+            <i data-lucide="git-branch" class="w-12 h-12 mb-4 opacity-50"></i>
+            <p>No merges yet.</p>
+            <p class="text-sm">Keep reviewing PRs!</p>
+        </div>
+    </main>
+
+    <script type="module">
+        import { datastore } from './datastore.js?v=4';
+
+        lucide.createIcons();
+
+        async function init() {
+            const container = document.getElementById('matches-list');
+            const emptyState = document.getElementById('empty-state');
+
+            try {
+                const matches = await datastore.getMatches(); // Await the API call
+
+                if (!matches || matches.length === 0) {
+                    emptyState.classList.remove('hidden');
+                } else {
+                    // Strict filter: must be non-null object, id must be number, id must be > 0
+                    matches.filter(p => p && typeof p.id === 'number' && p.id > 0).forEach(profile => {
+                        const el = document.createElement('a');
+                        el.href = `chat.html?id=${profile.id}`;
+                        el.className = 'flex items-center gap-4 p-3 rounded-lg hover:bg-github-card transition border border-transparent hover:border-github-border';
+                        el.innerHTML = `
+                            <div class="relative">
+                                <img src="${profile.image}" class="w-14 h-14 rounded-full object-cover border border-github-border" alt="${profile.name}">
+                                <div class="absolute bottom-0 right-0 w-3 h-3 bg-github-green rounded-full border-2 border-github-bg"></div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-bold text-github-text truncate">${profile.name}</h3>
+                                <p class="text-xs text-github-muted truncate font-mono">${profile.role}</p>
+                                <div class="flex gap-4 mt-1">
+                                    <p class="text-sm text-github-muted truncate">Start chatting...</p>
+                                    <button onclick="event.preventDefault(); window.location.href='view-profile.html?id=${profile.id}&return=matches'" class="text-xs text-github-accent hover:underline">View Profile</button>
+                                </div>
+                            </div>
+                            <i data-lucide="chevron-right" class="text-github-muted w-5 h-5"></i>
+                        `;
+                        container.appendChild(el);
+                    });
+                    lucide.createIcons();
+                }
+            } catch (e) {
+                console.error("Failed to load matches", e);
+            }
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

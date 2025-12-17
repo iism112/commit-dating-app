@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile | Commit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        github: {
+                            bg: '#0d1117',
+                            card: '#161b22',
+                            border: '#30363d',
+                            text: '#c9d1d9',
+                            input: '#0d1117',
+                            btn: '#238636',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-github-bg text-github-text min-h-screen p-4 flex flex-col items-center">
+
+    <nav class="w-full max-w-lg mb-6 flex items-center justify-between">
+        <a href="index.html" class="flex items-center gap-2 text-gray-400 hover:text-white transition">
+            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            <span>Back to Stack</span>
+        </a>
+        <h1 class="font-bold text-lg">My Profile</h1>
+        <div class="w-6"></div> <!-- Spacer for center align -->
+    </nav>
+
+    <div class="w-full max-w-md bg-github-card border border-github-border rounded-lg p-6 shadow-xl relative">
+
+        <!-- Avatar Upload -->
+        <div class="flex flex-col items-center mb-6">
+            <div
+                class="relative group cursor-pointer w-32 h-32 rounded-full overflow-hidden border-4 border-github-border mb-4">
+                <img id="avatar-preview" src="" class="w-full h-full object-cover" alt="Profile">
+                <div
+                    class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                    <i data-lucide="camera" class="w-8 h-8 text-white"></i>
+                </div>
+                <input type="file" id="avatar-input" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*">
+            </div>
+            <p class="text-xs text-gray-400">Tap to change photo</p>
+        </div>
+
+        <form id="profile-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-bold mb-2">Display Name</label>
+                <input type="text" id="name"
+                    class="w-full bg-github-input border border-github-border rounded-md px-3 py-2 outline-none"
+                    required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold mb-2">Job Title</label>
+                <input type="text" id="role"
+                    class="w-full bg-github-input border border-github-border rounded-md px-3 py-2 outline-none"
+                    required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold mb-2">Tech Stack</label>
+                <input type="text" id="stack"
+                    class="w-full bg-github-input border border-github-border rounded-md px-3 py-2 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold mb-2">Bio</label>
+                <textarea id="bio" rows="3"
+                    class="w-full bg-github-input border border-github-border rounded-md px-3 py-2 outline-none font-mono text-sm"></textarea>
+            </div>
+
+            <hr class="border-github-border my-6">
+
+            <button type="submit"
+                class="w-full bg-github-btn hover:opacity-90 text-white font-bold py-3 px-4 rounded-md transition">
+                Save Changes
+            </button>
+        </form>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast"
+        class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-github-green text-white px-6 py-3 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none">
+        Changes Saved Successfully!
+    </div>
+
+    <script type="module">
+        import { auth } from './auth.js';
+
+        lucide.createIcons();
+
+        // Load Data
+        const user = auth.getUser();
+        if (!user) window.location.href = 'login.html';
+
+        const avatarPreview = document.getElementById('avatar-preview');
+        avatarPreview.src = user.image || `https://ui-avatars.com/api/?name=${user.name}`;
+
+        document.getElementById('name').value = user.name || '';
+        document.getElementById('role').value = user.role || '';
+        document.getElementById('stack').value = (user.stack || []).join(', ');
+        document.getElementById('bio').value = user.bio || '';
+
+        // Handle Image Upload
+        document.getElementById('avatar-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    avatarPreview.src = reader.result; // Base64
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Save Form
+        document.getElementById('profile-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const updatedUser = {
+                ...user,
+                name: document.getElementById('name').value,
+                role: document.getElementById('role').value,
+                stack: document.getElementById('stack').value.split(',').map(s => s.trim()).filter(s => s),
+                bio: document.getElementById('bio').value,
+                image: avatarPreview.src // Save the base64 string
+            };
+
+            auth.updateUser(updatedUser);
+
+            // Show Toast
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-0');
+            setTimeout(() => toast.classList.add('opacity-0'), 2000);
+        });
+    </script>
+</body>
+
+</html>

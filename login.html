@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In | Commit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        github: {
+                            bg: '#0d1117',
+                            card: '#161b22',
+                            border: '#30363d',
+                            text: '#c9d1d9',
+                            input: '#0d1117',
+                            btn: '#238636',
+                            btnHover: '#2ea043'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-github-bg text-github-text h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="mb-8 text-center">
+        <i data-lucide="git-branch" class="w-12 h-12 mx-auto mb-4 text-white"></i>
+        <h1 class="text-2xl font-light text-white">Sign in to Commit</h1>
+    </div>
+
+    <div class="w-full max-w-sm bg-github-card border border-github-border rounded-lg p-6 shadow-xl">
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-bold mb-2 text-white">Email address</label>
+                <input type="email" id="email"
+                    class="w-full bg-github-input border border-github-border rounded-md px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold mb-2 text-white flex justify-between">
+                    <span>Password</span>
+                    <a href="#" class="text-blue-400 font-normal text-xs hover:underline">Forgot password?</a>
+                </label>
+                <input type="password" id="password"
+                    class="w-full bg-github-input border border-github-border rounded-md px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    required>
+            </div>
+
+            <button type="submit"
+                class="w-full bg-github-btn hover:bg-github-btnHover text-white font-bold py-2 px-4 rounded-md transition duration-200">
+                Sign in
+            </button>
+        </form>
+
+        <div id="error-msg"
+            class="hidden mt-4 p-3 bg-red-900/50 border border-red-500/50 rounded text-red-200 text-sm text-center">
+
+        </div>
+    </div>
+
+    <p class="mt-8 text-sm border p-4 rounded-lg border-github-border w-full max-w-sm text-center">
+        New to Commit?
+        <a href="signup.html" class="text-blue-400 hover:underline">Create an account</a>.
+    </p>
+
+    <script type="module">
+        import { auth } from './auth.js';
+
+        // Init Icons
+        lucide.createIcons();
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const result = await auth.login(email, password);
+
+            if (result.success) {
+                window.location.href = 'index.html';
+            } else {
+                const errDiv = document.getElementById('error-msg');
+                errDiv.textContent = result.message;
+                errDiv.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>

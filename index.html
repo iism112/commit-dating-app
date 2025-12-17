@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Commit | Developer Dating</title>
+
+    <!-- Auth Check -->
+    <script type="module">
+        import { auth } from './auth.js';
+        if (!auth.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+    </script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        github: {
+                            bg: '#0d1117',
+                            card: '#161b22',
+                            border: '#30363d',
+                            text: '#c9d1d9',
+                            muted: '#8b949e',
+                            btn: '#21262d',
+                            green: '#238636',
+                            red: '#da3633',
+                            accent: '#58a6ff'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            overflow: hidden;
+            /* Prevent pull-to-refresh on mobile */
+        }
+
+        .card-stack {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            max-height: 70vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .profile-card {
+            position: absolute;
+            width: 90%;
+            max-width: 360px;
+            height: 100%;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform-origin: 50% 100%;
+            user-select: none;
+            touch-action: none;
+            transition: transform 0.1s;
+        }
+
+        /* Overlay text for Like/Pass */
+        .stamp {
+            position: absolute;
+            top: 40px;
+            padding: 5px 10px;
+            border: 4px solid;
+            border-radius: 8px;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0;
+            transform: rotate(-15deg);
+            z-index: 10;
+        }
+
+        .stamp-like {
+            left: 40px;
+            color: #238636;
+            border-color: #238636;
+            transform: rotate(-15deg);
+        }
+
+        .stamp-nope {
+            right: 40px;
+            color: #da3633;
+            border-color: #da3633;
+            transform: rotate(15deg);
+        }
+
+        /* Match Modal Animation */
+        .match-overlay {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .match-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col items-center justify-between p-4">
+
+    <!-- Header -->
+    <nav class="w-full max-w-lg flex items-center justify-between p-4">
+        <div class="flex items-center gap-2 text-github-accent">
+            <i data-lucide="git-branch" class="w-6 h-6"></i>
+            <span class="font-bold text-xl tracking-tight">Commit</span>
+        </div>
+
+        <!-- Icons Nav -->
+        <div class="flex items-center gap-6">
+            <a href="nearby.html" class="text-github-muted hover:text-github-accent transition" title="Nearby">
+                <i data-lucide="map-pin" class="w-5 h-5"></i>
+            </a>
+            <a href="likes.html" class="text-github-muted hover:text-github-accent transition" title="Likes">
+                <i data-lucide="heart" class="w-5 h-5"></i>
+            </a>
+            <a href="matches.html" class="text-github-muted hover:text-github-accent transition" title="Matches">
+                <i data-lucide="message-circle" class="w-5 h-5"></i>
+            </a>
+
+            <div class="w-px h-6 bg-github-border mx-1"></div>
+
+            <div class="flex items-center gap-3">
+                <span id="user-display" class="text-sm font-bold hidden md:block"></span>
+                <div class="relative group cursor-pointer">
+                    <a href="edit-profile.html" class="block">
+                        <div
+                            class="w-8 h-8 rounded-full bg-github-border overflow-hidden ring-2 ring-transparent group-hover:ring-github-accent transition">
+                            <img id="user-avatar" src="https://ui-avatars.com/api/?name=User" alt="User" />
+                        </div>
+                    </a>
+                    <!-- Dropdown -->
+                    <div
+                        class="absolute right-0 mt-2 w-32 bg-github-card border border-github-border rounded-md shadow-lg hidden group-hover:block z-50">
+                        <a href="edit-profile.html"
+                            class="block w-full text-left px-4 py-2 text-sm hover:bg-github-border text-github-text">
+                            Edit Profile
+                        </a>
+                        <button id="btn-logout"
+                            class="w-full text-left px-4 py-2 text-sm hover:bg-github-border text-red-400">
+                            Sign out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+
+    <!-- Main Stack -->
+    <main id="stack-container" class="card-stack w-full max-w-lg flex-1 my-4">
+        <!-- Cards injected by JS -->
+        <div id="end-card"
+            class="hidden absolute flex flex-col items-center justify-center text-center p-8 text-github-muted">
+            <i data-lucide="check-circle" class="w-16 h-16 mb-4 text-github-green"></i>
+            <h2 class="text-xl font-bold text-github-text">All Caught Up!</h2>
+            <p>No more pull requests to review.</p>
+        </div>
+    </main>
+
+    <!-- Controls -->
+    <div class="w-full max-w-md flex justify-center gap-8 pb-8">
+        <button id="btn-pass"
+            class="w-16 h-16 rounded-full bg-github-btn border border-github-border flex items-center justify-center text-github-red shadow-lg hover:scale-110 transition-transform">
+            <i data-lucide="x" class="w-8 h-8"></i>
+        </button>
+        <button id="btn-refresh"
+            class="w-12 h-12 rounded-full bg-github-btn border border-github-border flex items-center justify-center text-github-accent shadow hover:scale-110 transition-transform">
+            <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+        </button>
+        <button id="btn-like"
+            class="w-16 h-16 rounded-full bg-github-btn border border-github-border flex items-center justify-center text-github-green shadow-lg hover:scale-110 transition-transform">
+            <i data-lucide="git-pull-request" class="w-8 h-8"></i>
+        </button>
+    </div>
+
+    <!-- Match Overlay -->
+    <div id="match-modal"
+        class="match-overlay fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center text-center p-6 backdrop-blur-sm">
+        <div class="animate-bounce mb-6">
+            <i data-lucide="git-merge" class="w-24 h-24 text-github-green"></i>
+        </div>
+        <h1 class="text-4xl font-bold text-white mb-2 font-mono">It's a Merge!</h1>
+        <p class="text-github-muted mb-8 text-lg">You and <span id="match-name" class="text-github-accent">Sarah</span>
+            want to collaborate.</p>
+
+        <div class="flex gap-4 w-full max-w-xs">
+            <button id="btn-start-chat"
+                class="flex-1 py-3 px-6 rounded-lg bg-github-green text-white font-bold hover:opacity-90 transition">
+                Start Chat
+            </button>
+            <button id="close-match"
+                class="flex-1 py-3 px-6 rounded-lg border border-github-border text-github-text hover:bg-github-btn transition">
+                Keep Browsing
+            </button>
+        </div>
+    </div>
+
+    <!-- App Logic -->
+    <script type="module" src="./app.js?v=4"></script>
+    <script type="module">
+        import { auth } from './auth.js';
+
+        // Init Icons
+        lucide.createIcons();
+
+        // Load User Info
+        const user = auth.getUser();
+        if (user) {
+            document.getElementById('user-avatar').src = user.image;
+            document.getElementById('user-display').textContent = user.username;
+        }
+
+        // Logout
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            auth.logout();
+            window.location.href = 'login.html';
+        });
+    </script>
+</body>
+
+</html>

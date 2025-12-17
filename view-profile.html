@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Details | Commit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        github: {
+                            bg: '#0d1117',
+                            card: '#161b22',
+                            border: '#30363d',
+                            text: '#c9d1d9',
+                            muted: '#8b949e',
+                            btn: '#21262d',
+                            green: '#238636',
+                            accent: '#58a6ff'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-github-bg text-github-text min-h-screen">
+    <nav class="border-b border-github-border p-4 sticky top-0 bg-github-bg/95 backdrop-blur z-50">
+        <div class="max-w-lg mx-auto flex items-center justify-between">
+            <button id="btn-back" class="flex items-center gap-2 text-github-muted hover:text-white transition">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                <span id="back-text">Back</span>
+            </button>
+            <h1 class="font-bold text-lg">Profile</h1>
+            <div class="w-6"></div>
+        </div>
+    </nav>
+
+    <main class="max-w-lg mx-auto p-4 space-y-6">
+        <!-- Profile Header -->
+        <div class="flex flex-col items-center gap-4">
+            <div class="relative w-32 h-32">
+                <img id="profile-image" src=""
+                    class="w-full h-full rounded-full object-cover border-4 border-github-border">
+                <div id="match-badge"
+                    class="hidden absolute -bottom-2 -right-2 bg-github-green text-white text-xs font-bold px-3 py-1 rounded-full border-4 border-github-bg">
+                    MATCH
+                </div>
+            </div>
+            <div class="text-center">
+                <h2 id="profile-name" class="text-2xl font-bold text-white">Loading...</h2>
+                <p id="profile-role" class="text-github-muted font-mono mt-1">...</p>
+            </div>
+        </div>
+
+        <!-- Bio -->
+        <div class="bg-github-card border border-github-border rounded-lg p-4">
+            <h3 class="text-sm font-bold text-github-muted mb-2 uppercase tracking-wider">About</h3>
+            <p id="profile-bio" class="text-github-text leading-relaxed">...</p>
+        </div>
+
+        <!-- Tech Stack -->
+        <div class="bg-github-card border border-github-border rounded-lg p-4">
+            <h3 class="text-sm font-bold text-github-muted mb-3 uppercase tracking-wider">Tech Stack</h3>
+            <div id="profile-stack" class="flex flex-wrap gap-2">
+                <!-- Stack tags injected here -->
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { datastore } from './datastore.js?v=4';
+        import { auth } from './auth.js?v=2';
+
+        lucide.createIcons();
+
+        const params = new URLSearchParams(window.location.search);
+        const id = parseInt(params.get('id'));
+        const returnPage = params.get('return') || 'index'; // index, matches, chat
+
+        // Setup Back Button
+        const backBtn = document.getElementById('btn-back');
+        const backText = document.getElementById('back-text');
+
+        if (returnPage === 'chat') {
+            backText.textContent = 'Chat';
+            backBtn.onclick = () => window.location.href = `chat.html?id=${id}`;
+        } else if (returnPage === 'matches') {
+            backText.textContent = 'Matches';
+            backBtn.onclick = () => window.location.href = 'matches.html';
+        } else {
+            backText.textContent = 'Stack';
+            backBtn.onclick = () => window.location.href = 'index.html';
+        }
+
+        async function loadProfile() {
+            if (!id) return;
+            try {
+                const profile = await datastore.getProfile(id);
+                if (!profile) {
+                    alert('Profile not found');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                document.getElementById('profile-image').src = profile.image;
+                document.getElementById('profile-name').textContent = profile.name;
+                document.getElementById('profile-role').textContent = profile.role;
+                document.getElementById('profile-bio').textContent = profile.bio || "No bio yet.";
+
+                // Stack
+                const stackContainer = document.getElementById('profile-stack');
+                stackContainer.innerHTML = '';
+                if (profile.stack && profile.stack.length > 0) {
+                    profile.stack.forEach(tech => {
+                        const span = document.createElement('span');
+                        span.className = 'px-3 py-1 rounded-full text-xs font-mono bg-github-btn border border-github-border text-github-accent';
+                        span.textContent = tech;
+                        stackContainer.appendChild(span);
+                    });
+                } else {
+                    stackContainer.innerHTML = '<span class="text-github-muted text-sm italic">No tech stack listed.</span>';
+                }
+
+            } catch (e) {
+                console.error("Error loading profile", e);
+            }
+        }
+
+        loadProfile();
+    </script>
+</body>
+
+</html>

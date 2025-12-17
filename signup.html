@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Commit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        github: {
+                            bg: '#0d1117',
+                            card: '#161b22',
+                            border: '#30363d',
+                            text: '#c9d1d9',
+                            input: '#0d1117',
+                            btn: '#238636',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-github-bg text-github-text min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="mb-6 text-center">
+        <h1 class="text-3xl font-bold text-white mb-2">Create your account</h1>
+        <p class="text-gray-400">Join the open source heartbeat.</p>
+    </div>
+
+    <div class="w-full max-w-md bg-github-card border border-github-border rounded-lg p-8 shadow-xl">
+        <form id="signup-form" class="space-y-4">
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold mb-2">First Name</label>
+                    <input type="text" id="name"
+                        class="w-full bg-github-input border border-github-border rounded-md px-3 py-2 focus:border-blue-500 outline-none"
+                        placeholder="Octocat" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">Email Address</label>
+                    <input type="email" id="email"
+                        class="w-full bg-github-input border border-github-border rounded-md px-3 py-2 focus:border-blue-500 outline-none"
+                        required>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold mb-2">Password</label>
+                <input type="password" id="password"
+                    class="w-full bg-github-input border border-github-border rounded-md px-3 py-2 focus:border-blue-500 outline-none"
+                    required>
+            </div>
+
+            <hr class="border-github-border my-6">
+
+            <div>
+                <label class="block text-sm font-bold mb-2">Your Role</label>
+                <input type="text" id="role"
+                    class="w-full bg-github-input border border-github-border rounded-md px-3 py-2 focus:border-blue-500 outline-none"
+                    placeholder="e.g. Full Stack Developer" required>
+            </div>
+
+            <button type="submit"
+                class="w-full bg-github-btn hover:opacity-90 text-white font-bold py-3 px-4 rounded-md transition mt-4">
+                Initialize Repository (Sign Up)
+            </button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { auth } from './auth.js';
+
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const user = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                role: document.getElementById('role').value
+            };
+
+            const result = await auth.signup(user);
+            if (result.success) {
+                window.location.href = 'index.html';
+            } else {
+                alert(result.message || "Registration Failed");
+            }
+        });
+    </script>
+</body>
+
+</html>
