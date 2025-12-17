@@ -465,6 +465,18 @@ def seed_db(db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"Seeding Complete. Added {added_count} new profiles."}
 
+@app.get("/api/debug")
+def debug_status(db: Session = Depends(get_db)):
+    users = db.query(models.User).all()
+    output = []
+    for u in users:
+        output.append(f"ID: {u.id} | Name: {u.name} | Stack: {u.stack} | Email: {u.email}")
+    return {
+        "total_users": len(users),
+        "users": output,
+        "db_url_set": os.getenv("DATABASE_URL") is not None
+    }
+
 if __name__ == "__main__":
     import uvicorn
     # Kill old process on 8080 if possible? No.
