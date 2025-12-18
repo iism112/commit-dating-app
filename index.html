@@ -6,11 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Commit | Developer Dating</title>
 
-    <!-- Auth Check -->
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d1117">
+    <link rel="apple-touch-icon"
+        href="https://ui-avatars.com/api/?name=C&background=0d1117&color=c9d1d9&size=192&rounded=true&bold=true">
+
+    <!-- Auth Check & SW Register -->
     <script type="module">
         import { auth } from './auth.js';
         if (!auth.isAuthenticated()) {
             window.location.href = 'login.html';
+        }
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW Registered'))
+                    .catch(err => console.log('SW Fail', err));
+            });
         }
     </script>
 
