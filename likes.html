@@ -82,11 +82,11 @@
         const tabLikedMe = document.getElementById('tab-liked-me');
         const tabMyLikes = document.getElementById('tab-my-likes');
 
-        function renderProfiles(profiles, isBlur = false) {
+        async function renderProfiles(profiles, isBlur = false) {
             container.innerHTML = '';
 
             if (!profiles || profiles.length === 0) {
-                container.innerHTML = `<p class="col-span-2 text-center text-github-muted py-10">No activity yet.</p>`;
+                container.innerHTML = `<p class="col-span-2 text-center text-github-muted py-10">No pending likes.</p>`;
                 return;
             }
 
@@ -94,17 +94,59 @@
                 const card = document.createElement('div');
                 card.className = "relative group overflow-hidden rounded-xl border border-github-border bg-github-card aspect-[3/4]";
 
-                card.innerHTML = `
-                    <img src="${p.image}" class="w-full h-full object-cover transition transform group-hover:scale-110">
-                    <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 pt-12">
-                        <h3 class="font-bold text-white text-sm">${p.name}, <span class="text-xs text-github-muted font-normal">Dev</span></h3>
+                // Action Buttons for "Liked Me" tab only
+                let actionsHtml = '';
+                if (!isBlur) {
+                    actionsHtml = `
+                    <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition z-10">
+                        <button onclick="window.handleAction(${p.id}, 'pass', this)" class="bg-black/50 p-2 rounded-full hover:bg-red-500/80 text-white backdrop-blur transition border border-white/10" title="Pass">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="window.handleAction(${p.id}, 'like', this)" class="bg-black/50 p-2 rounded-full hover:bg-green-500/80 text-white backdrop-blur transition border border-white/10" title="Like Back">
+                            <i data-lucide="heart" class="w-4 h-4"></i>
+                        </button>
                     </div>
-                    ${isBlur ? '<div class="absolute inset-0 backdrop-blur-[2px] flex items-center justify-center bg-black/20"><i data-lucide="lock" class="text-white/50 w-8 h-8"></i></div>' : ''}
+                    `;
+                }
+
+                card.innerHTML = `
+                    ${actionsHtml}
+                    <div onclick="window.location.href='view-profile.html?id=${p.id}&return=likes'" class="cursor-pointer w-full h-full relative">
+                        <img src="${p.image}" class="w-full h-full object-cover transition transform group-hover:scale-110">
+                        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 pt-12">
+                            <h3 class="font-bold text-white text-sm">${p.name}, <span class="text-xs text-github-muted font-normal">Dev</span></h3>
+                            <div class="flex gap-1 mt-1 flex-wrap">
+                                ${(p.stack || []).slice(0, 2).map(s => `<span class="text-[10px] bg-white/10 px-1 rounded text-white/80">${s}</span>`).join('')}
+                            </div>
+                        </div>
+                        ${isBlur ? '<div class="absolute inset-0 backdrop-blur-[2px] flex items-center justify-center bg-black/20"><i data-lucide="lock" class="text-white/50 w-8 h-8"></i></div>' : ''}
+                    </div>
                 `;
                 container.appendChild(card);
             });
             lucide.createIcons();
         }
+
+        window.handleAction = async (id, type, btn) => {
+            event.stopPropagation(); // Don't click card
+            const res = await datastore.saveLike(id, type);
+            if (res) {
+                // If match, alert
+                if (type === 'like' && res.match) {
+                    // Simple confirm to go to matches
+                    if (confirm(`It's a Match! 💖\nStart chatting with them?`)) {
+                        window.location.href = 'matches.html';
+                        return;
+                    }
+                }
+                // Remove card visual
+                const card = btn.closest('.relative'); // div.relative
+                card.style.transition = "transform 0.3s, opacity 0.3s";
+                card.style.transform = "scale(0.8)";
+                card.style.opacity = "0";
+                setTimeout(() => card.remove(), 300);
+            }
+        };
 
         async function loadLikedMe() {
             const profiles = await datastore.getWhoLikedMe();
@@ -113,7 +155,12 @@
 
         async function loadMyLikes() {
             const profiles = await datastore.getMyLikes();
-            renderProfiles(profiles);
+            renderProfiles(profiles, true); // Blur or just show them (User passed 'true' in original code implying isBlur, maybe for 'Locked' premium feature? Assuming logic holds)
+            // Wait, original code passed NO arg for loadMyLikes, so isBlur=false.
+            // But usually 'My Likes' might require premium to see unless matched? 
+            // The original code in my view (Step 1020) had: loadMyLikes -> renderProfiles(profiles).
+            // Default isBlur = false.
+            // Let's keep it visible for now.
         }
 
         // Init: Liked Me

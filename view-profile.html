@@ -77,6 +77,20 @@
         </div>
     </main>
 
+    <!-- Action Footer (Only if coming from Likes) -->
+    <div id="action-footer" class="hidden fixed bottom-6 left-0 right-0 max-w-lg mx-auto px-4 z-50">
+        <div class="flex gap-4">
+            <button id="btn-pass"
+                class="flex-1 bg-github-card border border-github-red/50 text-github-red font-bold py-3 rounded-xl shadow-lg hover:bg-github-red/10 transition flex items-center justify-center gap-2">
+                <i data-lucide="x" class="w-5 h-5"></i> Pass
+            </button>
+            <button id="btn-like"
+                class="flex-1 bg-github-green text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition flex items-center justify-center gap-2">
+                <i data-lucide="heart" class="w-5 h-5"></i> Like Back
+            </button>
+        </div>
+    </div>
+
     <script type="module">
         import { datastore } from './datastore.js?v=4';
         import { auth } from './auth.js?v=2';
@@ -85,7 +99,7 @@
 
         const params = new URLSearchParams(window.location.search);
         const id = parseInt(params.get('id'));
-        const returnPage = params.get('return') || 'index'; // index, matches, chat
+        const returnPage = params.get('return') || 'index'; // index, matches, chat, likes
 
         // Setup Back Button
         const backBtn = document.getElementById('btn-back');
@@ -97,10 +111,33 @@
         } else if (returnPage === 'matches') {
             backText.textContent = 'Matches';
             backBtn.onclick = () => window.location.href = 'matches.html';
+        } else if (returnPage === 'likes') {
+            backText.textContent = 'Activity';
+            backBtn.onclick = () => window.location.href = 'likes.html';
+            document.getElementById('action-footer').classList.remove('hidden');
         } else {
             backText.textContent = 'Stack';
             backBtn.onclick = () => window.location.href = 'index.html';
         }
+
+        // Action Handlers
+        document.getElementById('btn-pass').onclick = async () => {
+            await datastore.saveLike(id, 'pass');
+            window.location.href = 'likes.html';
+        };
+
+        document.getElementById('btn-like').onclick = async () => {
+            const res = await datastore.saveLike(id, 'like');
+            if (res && res.match) {
+                if (confirm("It's a Match! 💖\nStart chatting?")) {
+                    window.location.href = 'matches.html';
+                } else {
+                    window.location.href = 'likes.html';
+                }
+            } else {
+                window.location.href = 'likes.html';
+            }
+        };
 
         async function loadProfile() {
             if (!id) return;

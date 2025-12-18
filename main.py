@@ -377,12 +377,24 @@ def get_nearby(lat: float, lng: float, current_user_id: int = Depends(get_curren
 
 @app.get("/api/likes/received", response_model=List[UserRead])
 def get_likes_received(current_user_id: int = Depends(get_current_user), db: Session = Depends(get_db)):
-    actions = db.query(models.Action).filter(
+    # 1. Who liked me?
+    incoming_likes = db.query(models.Action).filter(
         models.Action.target_id == current_user_id,
         models.Action.action_type == 'like'
     ).all()
-    sender_ids = [a.user_id for a in actions]
-    return db.query(models.User).filter(models.User.id.in_(sender_ids)).all()
+    sender_ids = [a.user_id for a in incoming_likes]
+    
+    if not sender_ids:
+        return []
+        
+    # 2. Who have I already acted on? (Liked or Passed)
+    my_actions = db.query(models.Action).filter(models.Action.user_id == current_user_id).all()
+    my_acted_ids = set([a.target_id for a in my_actions])
+    
+    # 3. Filter: Only show people I haven't acted on yet
+    pending_ids = [uid for uid in sender_ids if uid not in my_acted_ids]
+    
+    return db.query(models.User).filter(models.User.id.in_(pending_ids)).all()
 
 @app.get("/api/likes/sent", response_model=List[UserRead])
 def get_likes_sent(current_user_id: int = Depends(get_current_user), db: Session = Depends(get_db)):
